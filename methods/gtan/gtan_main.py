@@ -11,7 +11,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder, QuantileTransformer
 from dgl.dataloading import MultiLayerFullNeighborSampler
-from dgl.dataloading import NodeDataLoader
+from dgl.dataloading import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 from .gtan_model import GraphAttnModel
 from . import *
@@ -41,7 +41,7 @@ def gtan_main(feat_df, graph, train_idx, test_idx, labels, args, cat_features):
             device), torch.from_numpy(np.array(train_idx)[val_idx]).long().to(device)
 
         train_sampler = MultiLayerFullNeighborSampler(args['n_layers'])
-        train_dataloader = NodeDataLoader(graph,
+        train_dataloader = DataLoader(graph,
                                           trn_ind,
                                           train_sampler,
                                           device=device,
@@ -52,7 +52,7 @@ def gtan_main(feat_df, graph, train_idx, test_idx, labels, args, cat_features):
                                           num_workers=0
                                           )
         val_sampler = MultiLayerFullNeighborSampler(args['n_layers'])
-        val_dataloader = NodeDataLoader(graph,
+        val_dataloader = DataLoader(graph,
                                         val_ind,
                                         val_sampler,
                                         use_ddp=False,
@@ -177,7 +177,7 @@ def gtan_main(feat_df, graph, train_idx, test_idx, labels, args, cat_features):
         print("Best val_loss is: {:.7f}".format(earlystoper.best_cv))
         test_ind = torch.from_numpy(np.array(test_idx)).long().to(device)
         test_sampler = MultiLayerFullNeighborSampler(args['n_layers'])
-        test_dataloader = NodeDataLoader(graph,
+        test_dataloader = DataLoader(graph,
                                          test_ind,
                                          test_sampler,
                                          use_ddp=False,
@@ -232,6 +232,7 @@ def load_gtan_data(dataset: str, test_size: float):
     :param test_size: the size of test set
     :returns: feature, label, graph, category features
     """
+    # 测试的比例默认为0.4
     # prefix = './antifraud/data/'
     prefix = os.path.join(os.path.dirname(__file__), "..", "..", "data/")
     if dataset == "S-FFSD":
@@ -303,6 +304,7 @@ def load_gtan_data(dataset: str, test_size: float):
                 tgt.append(j)  # tgt是被指向点
         src = np.array(src)
         tgt = np.array(tgt)
+        # 在同构图上构建DGL对象
         g = dgl.graph((src, tgt))
         g.ndata['label'] = torch.from_numpy(labels.to_numpy()).to(torch.long)
         g.ndata['feat'] = torch.from_numpy(
@@ -338,3 +340,10 @@ def load_gtan_data(dataset: str, test_size: float):
         dgl.data.utils.save_graphs(graph_path, [g])
 
     return feat_data, labels, train_idx, test_idx, g, cat_features
+
+
+#  实验效果
+# NN out of fold AP is: 0.6753426236648339
+# test AUC: 0.9004698089301658
+# test f1: 0.7710031802642092
+# test AP: 0.6805935604026807

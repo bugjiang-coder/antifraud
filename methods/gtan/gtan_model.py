@@ -78,7 +78,7 @@ class TransEmbedding(nn.Module):
         # print(self.emb_dict)
         # print(df['trans_md'])
         support = {col: self.emb_dict[col](
-            df[col]) for col in self.cat_features if col not in {"Labels", "Time"}}
+            df[col]) for col in self.c if col not in {"Labels", "Time"}}
         #self.time_emb = self.time_pe(torch.sin(torch.tensor(df['time_span'])/86400*torch.pi))
         #support['time_span'] = self.time_emb
         #support['labels'] = self.label_table(df['labels'])

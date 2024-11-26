@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter,
                             conflict_handler='resolve')
-    parser.add_argument("--method", default=str)  # specify which method to use
+    parser.add_argument("--method", default="sefraud")  # specify which method to use
     method = vars(parser.parse_args())['method']  # dict
 
     # if method in ['']:
@@ -38,6 +38,8 @@ def parse_args():
         yaml_file = "config/rgtan_cfg.yaml"
     elif method in ['hogrl']:
         yaml_file = "config/hogrl_cfg.yaml"
+    elif method in ['sefraud']:
+        yaml_file = "config/sefraud_cfg.yaml"
         
     else:
         raise NotImplementedError("Unsupported method.")
@@ -150,6 +152,9 @@ def main(args):
     elif args['method'] == 'hogrl':
         from methods.hogrl.hogrl_main import hogrl_main
         hogrl_main(args)
+    elif args['method'] == 'sefraud':
+        from methods.sefraud.sefraud_main import sefraud_main
+        sefraud_main(args)
     else:
         raise NotImplementedError("Unsupported method. ")
 

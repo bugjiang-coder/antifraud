@@ -1,11 +1,12 @@
 import random
 import torch
 from sklearn.model_selection import train_test_split
-from .hogrl_model import *
-from .hogrl_utils import *
+from .sefraud_model import *
+from .sefraud_utils import *
 # from .hogrl_utils import *
 import numpy as np
 import random as rd
+import sys
 from sklearn.metrics import f1_score, accuracy_score, recall_score, roc_auc_score, average_precision_score
 
 def test(idx_eval, y_eval, gnn_model, feat_data, edge_indexs):
@@ -21,7 +22,7 @@ def test(idx_eval, y_eval, gnn_model, feat_data, edge_indexs):
 
     return auc_score, ap_score, f1_score_val, g_mean
 
-def hogrl_main(args):
+def sefraud_main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     print('loading data...')
@@ -31,6 +32,11 @@ def hogrl_main(args):
     # graph neural network model. It is used to represent the connectivity of nodes in the graph. Each
     # element in the `edge_indexs` list corresponds to a different type of edge in the graph.
     edge_indexs,feat_data,labels = load_data(args['dataset'],args['layers_tree'], prefix)
+    
+    print('edge_indexs:', edge_indexs[0][0].shape)
+    print('feat_data:', feat_data.shape)
+    print('labels:', labels.shape)
+    
     
     np.random.seed(args['seed'])
     random.seed(args['seed'])
@@ -48,8 +54,10 @@ def hogrl_main(args):
         idx_train, idx_val, y_train, y_val = train_test_split(idx_train_val, y_train_val, stratify=y_train_val, test_size=args['val_size'], random_state=2, shuffle=True)
     
     train_pos, train_neg = pos_neg_split(idx_train, y_train)
+    
+    # print("edge_indexs:", len(edge_indexs))
 
-    gnn_model = multi_HOGRL_Model(feat_data.shape[1],2,len(edge_indexs),args['emb_size'],args['drop_rate'],args['weight'],args['layers'],args['layers_tree']).to(device)
+    gnn_model = multi_SEFraud_Model(feat_data.shape[1],2,len(edge_indexs),args['emb_size'],args['drop_rate'],args['weight'],args['layers'],args['layers_tree']).to(device)
     for edge_index in edge_indexs:
         edge_index[0] = edge_index[0].to(device)
         edge_index[1] = [tensor.to(device) for tensor in edge_index[1]]
@@ -63,6 +71,7 @@ def hogrl_main(args):
     best_val_auc = 0.0
     best_model_state = None
     
+    # sys.exit(0)
     print('training...')
     for epoch in range(args['num_epochs']):
         gnn_model.train()
@@ -86,7 +95,7 @@ def hogrl_main(args):
             loss.backward()
             optimizer.step()
             loss += loss.item()
-            #print(loss.item())
+            # print(loss.item())
 
         if epoch % 10 == 9: # validate every 10 epochs 
             val_auc, val_ap, val_f1, val_g_mean = test(idx_val, y_val, gnn_model, feat_data, edge_indexs)
